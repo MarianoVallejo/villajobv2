@@ -71,6 +71,7 @@ class _RegistroPublicacionScreenState
           'descripcion': descripcion,
           'precio': precio,
           'empleadorId': empleadorId,
+          'bloqueada': false, // Agregar la variable 'bloqueada' con valor predeterminado false
         }).then((value) {
           // Registro exitoso
           print('Publicación registrada con éxito');

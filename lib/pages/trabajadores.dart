@@ -11,6 +11,37 @@ class TrabajadoresScreen extends StatefulWidget {
 }
 
 class _TrabajadoresScreenState extends State<TrabajadoresScreen> {
+  late String trabajadorId;
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    obtenerTrabajadorId();
+  }
+
+  void obtenerTrabajadorId() {
+    String? trabajadorEmail = FirebaseAuth.instance.currentUser!.email;
+
+    FirebaseFirestore.instance
+        .collection('usuarios')
+        .where('email', isEqualTo: trabajadorEmail)
+        .get()
+        .then((QuerySnapshot snapshot) {
+      if (snapshot.docs.isNotEmpty) {
+        trabajadorId = snapshot.docs[0].id;
+      }
+      setState(() {
+        isLoading = false;
+      });
+    }).catchError((error) {
+      print('Error al obtener el trabajador: $error');
+      setState(() {
+        isLoading = false;
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -18,10 +49,37 @@ class _TrabajadoresScreenState extends State<TrabajadoresScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
-          "Trabajador",
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
+        title: isLoading
+            ? Text(
+                'Cargando...', // Mostrar texto de carga mientras se obtiene el valor de trabajadorId
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              )
+            : FutureBuilder<DocumentSnapshot>(
+                future: FirebaseFirestore.instance.collection('usuarios').doc(trabajadorId).get(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Text(
+                      'Cargando...', // Mostrar texto de carga mientras se obtiene la información del trabajador
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    );
+                  }
+                  if (snapshot.hasError || !snapshot.hasData) {
+                    return Text(
+                      'Error al cargar los datos',
+                      style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+                    );
+                  }
+
+                  final userData = snapshot.data!.data() as Map<String, dynamic>;
+                  final trabajadorNombre = userData['nombre'];
+                  final trabajadorApellido = userData['apellido'];
+
+                  return Text(
+                    'Trabajador: $trabajadorNombre $trabajadorApellido',
+                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+                  );
+                },
+              ),
       ),
       body: Container(
         width: MediaQuery.of(context).size.width,
@@ -90,29 +148,28 @@ class _TrabajadoresScreenState extends State<TrabajadoresScreen> {
                                           onPressed: () {
                                             Navigator.pop(context, 'Salir');
                                           },
-                                          child: Text('Salir'),
+                                          child: const Text('Salir'),
                                         ),
                                         TextButton(
                                           onPressed: () {
-                                            Navigator.pop(context, 'Postular');
+                                            _aceptarPublicacion(
+                                              document.id,
+                                              document['empleadorId'],
+                                              document['bloqueada'],
+                                            );
+                                            Navigator.pop(context, 'Aceptar');
                                           },
-                                          child: Text('Postular'),
+                                          child: const Text('Aceptar'),
                                         ),
                                       ],
                                     );
                                   },
-                                ).then((value) {
-                                  if (value == 'Salir') {
-                                    // Acción al presionar "Salir"
-                                  } else if (value == 'Postular') {
-                                    // Acción al presionar "Postular"
-                                  }
-                                });
+                                );
                               },
                               child: Card(
                                 child: ListTile(
                                   title: Text(document['descripcion']),
-                                  subtitle: Text('Empleador: $empleadorNombre $empleadorApellido\nTeléfono: $empleadorTelefono\nPrecio: ${document['precio']}'),
+                                  subtitle: Text('Empleador: $empleadorNombre $empleadorApellido'),
                                 ),
                               ),
                             );
@@ -126,18 +183,81 @@ class _TrabajadoresScreenState extends State<TrabajadoresScreen> {
                 },
               ),
             ),
-            ElevatedButton(
-              child: Text("Salir"),
-              onPressed: () {
-                print("Saliendo");
-                FirebaseAuth.instance.signOut().then((value) {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreem()));
-                });
-              },
-            ),
           ],
         ),
       ),
     );
+  }
+
+  void _aceptarPublicacion(String publicacionId, String empleadorId, bool publicacionBloqueada) {
+    // Obtener el ID del trabajador actualmente autenticado
+    String? trabajadorEmail = FirebaseAuth.instance.currentUser!.email;
+
+    // Obtener el documento del trabajador desde la colección de usuarios
+    FirebaseFirestore.instance
+        .collection('usuarios')
+        .where('email', isEqualTo: trabajadorEmail)
+        .get()
+        .then((QuerySnapshot snapshot) {
+      if (snapshot.docs.isNotEmpty) {
+        String trabajadorId = snapshot.docs[0].id;
+
+        // Verificar si el trabajador ya ha aceptado la misma publicación
+        FirebaseFirestore.instance
+            .collection('contratos')
+            .where('publicacionId', isEqualTo: publicacionId)
+            .get()
+            .then((QuerySnapshot snapshot) {
+          if (snapshot.docs.isNotEmpty) {
+            // Mostrar mensaje en una pantalla
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Esta publicación ya ha sido aceptada por otro trabajador'),
+              ),
+            );
+          } else if (!publicacionBloqueada) {
+            // Generar un ID único para el contrato
+            String contratoId = 'contrato${DateTime.now().millisecondsSinceEpoch}';
+
+            // Guardar el contrato en Firestore
+            FirebaseFirestore.instance.collection('contratos').doc(contratoId).set({
+              'id': contratoId,
+              'trabajadorId': trabajadorId,
+              'empleadorId': empleadorId,
+              'publicacionId': publicacionId, // Agregar el ID de la publicación al contrato
+              'calificacion': null,
+            }).then((value) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Contrato creado con éxito'),
+                ),
+              );
+
+              // Marcar la publicación como bloqueada
+              FirebaseFirestore.instance.collection('publicaciones').doc(publicacionId).update({
+                'bloqueada': true,
+              }).then((value) {
+                print('Publicación bloqueada con éxito');
+              }).catchError((error) {
+                // Error al bloquear la publicación
+                print('Error al bloquear la publicación: $error');
+              });
+            }).catchError((error) {
+              // Error al guardar el contrato
+              print('Error al guardar el contrato: $error');
+            });
+          }
+        }).catchError((error) {
+          // Error al consultar la colección de contratos
+          print('Error al verificar si el trabajador ha aceptado la publicación: $error');
+        });
+      } else {
+        // No se encontró el trabajador en la colección de usuarios
+        print('Error: Trabajador no encontrado');
+      }
+    }).catchError((error) {
+      // Error al consultar la colección de usuarios
+      print('Error al obtener el trabajador: $error');
+    });
   }
 }
