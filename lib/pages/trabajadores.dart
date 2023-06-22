@@ -45,151 +45,211 @@ class _TrabajadoresScreenState extends State<TrabajadoresScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: isLoading
-            ? Text(
-                'Cargando...', // Mostrar texto de carga mientras se obtiene el valor de trabajadorId
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              )
-            : FutureBuilder<DocumentSnapshot>(
-                future: FirebaseFirestore.instance.collection('usuarios').doc(trabajadorId).get(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Text(
-                      'Cargando...', // Mostrar texto de carga mientras se obtiene la información del trabajador
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                    );
-                  }
-                  if (snapshot.hasError || !snapshot.hasData) {
-                    return Text(
-                      'Error al cargar los datos',
-                      style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
-                    );
-                  }
+        extendBodyBehindAppBar: true,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: isLoading
+              ? Text(
+                  'Cargando...', // Mostrar texto de carga mientras se obtiene el valor de trabajadorId
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                )
+              : FutureBuilder<DocumentSnapshot>(
+                  future: FirebaseFirestore.instance
+                      .collection('usuarios')
+                      .doc(trabajadorId)
+                      .get(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Text(
+                        'Cargando...', // Mostrar texto de carga mientras se obtiene la información del trabajador
+                        style: TextStyle(
+                            fontSize: 24, fontWeight: FontWeight.bold),
+                      );
+                    }
+                    if (snapshot.hasError || !snapshot.hasData) {
+                      return Text(
+                        'Error al cargar los datos',
+                        style: TextStyle(
+                            fontSize: 19, fontWeight: FontWeight.bold),
+                      );
+                    }
 
-                  final userData = snapshot.data!.data() as Map<String, dynamic>;
-                  final trabajadorNombre = userData['nombre'];
-                  final trabajadorApellido = userData['apellido'];
+                    final userData =
+                        snapshot.data!.data() as Map<String, dynamic>;
+                    final trabajadorNombre = userData['nombre'];
+                    final trabajadorApellido = userData['apellido'];
 
-                  return Text(
-                    'Trabajador: $trabajadorNombre $trabajadorApellido',
-                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
-                  );
-                },
-              ),
-      ),
-      body: Container(
-        width: MediaQuery.of(context).size.width,
-        height: MediaQuery.of(context).size.height,
-        decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [
-          Color.fromARGB(255, 47, 152, 233),
-          Color.fromRGBO(236, 163, 249, 1)
-        ], begin: Alignment.topCenter, end: Alignment.bottomCenter)),
-        child: Column(
+                    return Text(
+                      'Trabajador: $trabajadorNombre $trabajadorApellido',
+                      style:
+                          TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+                    );
+                  },
+                ),
+        ),
+        body: Stack(
           children: [
-            Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance.collection('publicaciones').snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return Text('Error al cargar las publicaciones');
-                  }
+            Container(
+              width: MediaQuery.of(context).size.width,
+              height: MediaQuery.of(context).size.height,
+              decoration: const BoxDecoration(
+                  gradient: LinearGradient(colors: [
+                Color.fromARGB(255, 47, 152, 233),
+                Color.fromRGBO(236, 163, 249, 1)
+              ], begin: Alignment.topCenter, end: Alignment.bottomCenter)),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('publicaciones')
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasError) {
+                          return Text('Error al cargar las publicaciones');
+                        }
 
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return CircularProgressIndicator();
-                  }
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return CircularProgressIndicator();
+                        }
 
-                  if (snapshot.hasData) {
-                    final List<QueryDocumentSnapshot> documents = snapshot.data!.docs;
+                        if (snapshot.hasData) {
+                          final List<QueryDocumentSnapshot> documents =
+                              snapshot.data!.docs;
 
-                    return ListView.builder(
-                      itemCount: documents.length,
-                      itemBuilder: (context, index) {
-                        final document = documents[index];
+                          return ListView.builder(
+                            itemCount: documents.length,
+                            itemBuilder: (context, index) {
+                              final document = documents[index];
 
-                        // Obtener el ID del empleador
-                        final empleadorId = document['empleadorId'];
+                              // Obtener el ID del empleador
+                              final empleadorId = document['empleadorId'];
 
-                        // Obtener la información del empleador desde la colección de usuarios
-                        return FutureBuilder<DocumentSnapshot>(
-                          future: FirebaseFirestore.instance.collection('usuarios').doc(empleadorId).get(),
-                          builder: (context, snapshot) {
-                            if (snapshot.hasError || !snapshot.hasData) {
-                              // Manejar el error o el documento no encontrado
-                              return Container();
-                            }
+                              // Obtener la información del empleador desde la colección de usuarios
+                              return FutureBuilder<DocumentSnapshot>(
+                                future: FirebaseFirestore.instance
+                                    .collection('usuarios')
+                                    .doc(empleadorId)
+                                    .get(),
+                                builder: (context, snapshot) {
+                                  if (snapshot.hasError || !snapshot.hasData) {
+                                    // Manejar el error o el documento no encontrado
+                                    return Container();
+                                  }
 
-                            final userData = snapshot.data!.data() as Map<String, dynamic>;
-                            final empleadorNombre = userData['nombre'];
-                            final empleadorApellido = userData['apellido'];
-                            final empleadorTelefono = userData['telefono'];
+                                  final userData = snapshot.data!.data()
+                                      as Map<String, dynamic>;
+                                  final empleadorNombre = userData['nombre'];
+                                  final empleadorApellido =
+                                      userData['apellido'];
+                                  final empleadorTelefono =
+                                      userData['telefono'];
 
-                            // Mostrar la publicación junto con el nombre y apellido del empleador
-                            return GestureDetector(
-                              onTap: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (BuildContext context) {
-                                    return AlertDialog(
-                                      title: Text(document['descripcion']),
-                                      content: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text('Empleador: $empleadorNombre $empleadorApellido'),
-                                          Text('Teléfono: $empleadorTelefono'),
-                                        ],
+                                  // Mostrar la publicación junto con el nombre y apellido del empleador
+                                  return GestureDetector(
+                                    onTap: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (BuildContext context) {
+                                          return AlertDialog(
+                                            title:
+                                                Text(document['descripcion']),
+                                            content: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                    'Empleador: $empleadorNombre $empleadorApellido'),
+                                                Text(
+                                                    'Teléfono: $empleadorTelefono'),
+                                              ],
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () {
+                                                  Navigator.pop(
+                                                      context, 'Salir');
+                                                },
+                                                child: const Text('Salir'),
+                                              ),
+                                              TextButton(
+                                                onPressed: () {
+                                                  _aceptarPublicacion(
+                                                    document.id,
+                                                    document['empleadorId'],
+                                                    document['bloqueada'],
+                                                  );
+                                                  Navigator.pop(
+                                                      context, 'Aceptar');
+                                                },
+                                                child: const Text('Aceptar'),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      );
+                                    },
+                                    child: Card(
+                                      child: ListTile(
+                                        title: Text(document['descripcion']),
+                                        subtitle: Text(
+                                            'Empleador: $empleadorNombre $empleadorApellido'),
                                       ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.pop(context, 'Salir');
-                                          },
-                                          child: const Text('Salir'),
-                                        ),
-                                        TextButton(
-                                          onPressed: () {
-                                            _aceptarPublicacion(
-                                              document.id,
-                                              document['empleadorId'],
-                                              document['bloqueada'],
-                                            );
-                                            Navigator.pop(context, 'Aceptar');
-                                          },
-                                          child: const Text('Aceptar'),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                );
-                              },
-                              child: Card(
-                                child: ListTile(
-                                  title: Text(document['descripcion']),
-                                  subtitle: Text('Empleador: $empleadorNombre $empleadorApellido'),
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    );
-                  }
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          );
+                        }
 
-                  return Container();
-                },
+                        return Container();
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
+            Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(     
+                  child: BottomAppBar(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        IconButton(   
+                          icon: Icon(Icons.person_outline),
+                          onPressed: () {
+                            // Acción para el botón de ajustes (opcional)
+                          },
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.exit_to_app),
+                          onPressed: () {
+                            print("Saliendo");
+                            FirebaseAuth.instance.signOut().then((value) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => LoginScreem()),
+                              );
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                )),
           ],
-        ),
-      ),
-    );
+        ));
   }
 
-  void _aceptarPublicacion(String publicacionId, String empleadorId, bool publicacionBloqueada) {
+  void _aceptarPublicacion(
+      String publicacionId, String empleadorId, bool publicacionBloqueada) {
     // Obtener el ID del trabajador actualmente autenticado
     String? trabajadorEmail = FirebaseAuth.instance.currentUser!.email;
 
@@ -212,19 +272,25 @@ class _TrabajadoresScreenState extends State<TrabajadoresScreen> {
             // Mostrar mensaje en una pantalla
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Esta publicación ya ha sido aceptada por otro trabajador'),
+                content: Text(
+                    'Esta publicación ya ha sido aceptada por otro trabajador'),
               ),
             );
           } else if (!publicacionBloqueada) {
             // Generar un ID único para el contrato
-            String contratoId = 'contrato${DateTime.now().millisecondsSinceEpoch}';
+            String contratoId =
+                'contrato${DateTime.now().millisecondsSinceEpoch}';
 
             // Guardar el contrato en Firestore
-            FirebaseFirestore.instance.collection('contratos').doc(contratoId).set({
+            FirebaseFirestore.instance
+                .collection('contratos')
+                .doc(contratoId)
+                .set({
               'id': contratoId,
               'trabajadorId': trabajadorId,
               'empleadorId': empleadorId,
-              'publicacionId': publicacionId, // Agregar el ID de la publicación al contrato
+              'publicacionId':
+                  publicacionId, // Agregar el ID de la publicación al contrato
               'calificacion': null,
             }).then((value) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -234,7 +300,10 @@ class _TrabajadoresScreenState extends State<TrabajadoresScreen> {
               );
 
               // Marcar la publicación como bloqueada
-              FirebaseFirestore.instance.collection('publicaciones').doc(publicacionId).update({
+              FirebaseFirestore.instance
+                  .collection('publicaciones')
+                  .doc(publicacionId)
+                  .update({
                 'bloqueada': true,
               }).then((value) {
                 print('Publicación bloqueada con éxito');
@@ -249,7 +318,8 @@ class _TrabajadoresScreenState extends State<TrabajadoresScreen> {
           }
         }).catchError((error) {
           // Error al consultar la colección de contratos
-          print('Error al verificar si el trabajador ha aceptado la publicación: $error');
+          print(
+              'Error al verificar si el trabajador ha aceptado la publicación: $error');
         });
       } else {
         // No se encontró el trabajador en la colección de usuarios

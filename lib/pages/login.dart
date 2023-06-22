@@ -8,7 +8,7 @@ import 'package:villajob/pages/trabajadores.dart';
 import '../widgets_reutilizables/reutilizables.dart';
 
 class LoginScreem extends StatefulWidget {
-  const LoginScreem({super.key});
+  const LoginScreem({Key? key}) : super(key: key);
 
   @override
   State<LoginScreem> createState() => _LoginScreemState();
@@ -17,10 +17,11 @@ class LoginScreem extends StatefulWidget {
 class _LoginScreemState extends State<LoginScreem> {
   TextEditingController _passwordTextController = TextEditingController();
   TextEditingController _emailTextController = TextEditingController();
+  bool _isLoading = true; // Variable para controlar el estado de carga
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
       body: Container(
         width: MediaQuery.of(context).size.width,
         height: MediaQuery.of(context).size.height,
@@ -30,75 +31,115 @@ class _LoginScreemState extends State<LoginScreem> {
           Color.fromRGBO(236, 163, 249, 1)
         ], begin: Alignment.topCenter, end: Alignment.bottomCenter)),
         child: SingleChildScrollView(
-            child: Padding(
-          padding: EdgeInsets.fromLTRB(
-              20, MediaQuery.of(context).size.height * 0.2, 20, 0),
-          child: Column(
-            children: [
-              LogoWidget("assets/images/logo.png"),
-              const SizedBox(
-                height: 30,
-              ),
-              reusableTextFiell("Correo",
-                  Icons.person_outline, false, _emailTextController),
-              const SizedBox(
-                height: 30,
-              ),
-              reusableTextFiell("Contraseña", Icons.lock_outline, true,
-                  _passwordTextController),
-              const SizedBox(
-                height: 30,
-              ),
-
-              loginButton(context, true, () {///boton para el logeo 
-                FirebaseAuth.instance
-  .signInWithEmailAndPassword(
-    email: _emailTextController.text,
-    password: _passwordTextController.text)
-  .then((value) {
-    // Autenticación exitosa, obtenemos el correo electrónico del usuario
-    String? userEmail = value.user!.email;
-    
-    // Realiza la búsqueda del tipo de usuario en Firestore
-    FirebaseFirestore.instance
-      .collection('usuarios')
-      .where('email', isEqualTo: userEmail)
-      .get()
-      .then((QuerySnapshot querySnapshot) {
-        if (querySnapshot.docs.isNotEmpty) {
-          // El usuario existe en Firestore
-             var userData = querySnapshot.docs[0].data() as Map<String, dynamic>;
-              String? userType = userData['opcion'];
-          
-          // Redirige a la pantalla correspondiente según el tipo de usuario
-          if (userType == 'Trabajador') {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => TrabajadoresScreen()),
-            );
-          } else if (userType == 'Empleador') {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => EmpleadoresScreen()),
-            );
-          }
-        } else {
-          // El usuario no existe en Firestore o no tiene asignado un tipo de usuario
-          print('El usuario no existe o no tiene asignado un tipo de usuario');
-        }
-      });
-  })
-  .catchError((error) {
-    // Error durante la autenticación
-    print('Error de inicio de sesión: ${error.toString()}');
-  });
-              }),
-              Opcion_de_registro()
-            ],
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+                20, MediaQuery.of(context).size.height * 0.2, 20, 0),
+            child: Column(
+              children: [
+                LogoWidget("assets/images/logo.png"),
+                const SizedBox(
+                  height: 30,
+                ),
+                reusableTextFiell(
+                    "Correo",
+                    Icons.person_outline,
+                    false,
+                    _emailTextController),
+                const SizedBox(
+                  height: 30,
+                ),
+                reusableTextFiell("Contraseña", Icons.lock_outline, true,
+                    _passwordTextController),
+                const SizedBox(
+                  height: 30,
+                ),
+                loginButton(context, _isLoading, () {
+                  _signInWithEmailAndPassword();
+                }),
+                Opcion_de_registro(),
+              ],
+            ),
           ),
-        )),
+        ),
       ),
     );
+  }
+
+  Future<void> _signInWithEmailAndPassword() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16.0),
+                Text('Iniciando sesión...'),
+              ],
+            ),
+          );
+        },
+      );
+
+      UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(
+              email: _emailTextController.text,
+              password: _passwordTextController.text);
+
+      String? userEmail = userCredential.user!.email;
+
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('usuarios')
+          .where('email', isEqualTo: userEmail)
+          .get();
+
+      Navigator.pop(context);
+
+      if (querySnapshot.docs.isNotEmpty) {
+        var userData = querySnapshot.docs[0].data() as Map<String, dynamic>;
+        String? userType = userData['opcion'];
+
+        if (userType == 'Trabajador') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => TrabajadoresScreen()),
+          );
+        } else if (userType == 'Empleador') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => EmpleadoresScreen()),
+          );
+        }
+      } else {
+        showErrorMessage('El usuario no existe o no tiene asignado un tipo de usuario');
+      }
+    } catch (error) {
+      Navigator.pop(context);
+      showErrorMessage('Error de inicio de sesión: $error');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void showErrorMessage(String message) {
+    final snackBar = SnackBar(
+      content: Text(
+        message,
+        style: TextStyle(color: Colors.white),
+      ),
+      backgroundColor: Colors.red,
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
   Row Opcion_de_registro() {
@@ -108,8 +149,10 @@ class _LoginScreemState extends State<LoginScreem> {
         const Text("No tengo cuenta", style: TextStyle(color: Colors.white70)),
         GestureDetector(
           onTap: () {
-            Navigator.push(context,
-                MaterialPageRoute(builder: (context) => RegistroScreen()));
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => RegistroScreen()),
+            );
           },
           child: const Text(
             "? REGISTRAR",

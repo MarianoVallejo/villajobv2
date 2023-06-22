@@ -4,6 +4,8 @@ import 'package:villajob/pages/login.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:villajob/pages/registroPubli.dart';
 
+import 'contratos.dart';
+
 class EmpleadoresScreen extends StatefulWidget {
   const EmpleadoresScreen({Key? key});
 
@@ -58,22 +60,28 @@ class _EmpleadoresScreenState extends State<EmpleadoresScreen> {
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               )
             : FutureBuilder<DocumentSnapshot>(
-                future: FirebaseFirestore.instance.collection('usuarios').doc(empleadorId).get(),
+                future: FirebaseFirestore.instance
+                    .collection('usuarios')
+                    .doc(empleadorId)
+                    .get(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Text(
                       'Cargando...', // Mostrar texto de carga mientras se obtiene la información del trabajador
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                     );
                   }
                   if (snapshot.hasError || !snapshot.hasData) {
                     return Text(
                       'Error al cargar los datos',
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                     );
                   }
 
-                  final userData = snapshot.data!.data() as Map<String, dynamic>;
+                  final userData =
+                      snapshot.data!.data() as Map<String, dynamic>;
                   final empleadorNombre = userData['nombre'];
                   final empleadorApellido = userData['apellido'];
 
@@ -84,47 +92,74 @@ class _EmpleadoresScreenState extends State<EmpleadoresScreen> {
                 },
               ),
       ),
-      body: Container(
-        width: MediaQuery.of(context).size.width,
-        height: MediaQuery.of(context).size.height,
-        decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [
-          Color.fromARGB(255, 47, 152, 233),
-          Color.fromRGBO(236, 163, 249, 1)
-        ], begin: Alignment.topCenter, end: Alignment.bottomCenter)),
-        child: Center(
-          child: isLoading
-              ? CircularProgressIndicator()
-              : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton(
-                      child: Text("Registrar Publicación"),
-                      onPressed: () {
+      body: Stack(
+        children: [
+          Container(
+            width: MediaQuery.of(context).size.width,
+            height: MediaQuery.of(context).size.height,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(colors: [
+                Color.fromARGB(255, 47, 152, 233),
+                Color.fromRGBO(236, 163, 249, 1)
+              ], begin: Alignment.topCenter, end: Alignment.bottomCenter),
+            ),
+            child: Center(
+              child: isLoading
+                  ? CircularProgressIndicator()
+                  : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [],
+                    ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: BottomAppBar(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.person_outline),
+                    onPressed: () {
+                      // visualizar el contrato para darle la opcion de cerrarlo
+                      //y calificar
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => ContratosScreen()));
+                    },
+                  ),
+                  ElevatedButton(
+                    child: Text("Crear Publicación"),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => RegistroPublicacionScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.exit_to_app),
+                    onPressed: () {
+                      print("Saliendo");
+                      FirebaseAuth.instance.signOut().then((value) {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => RegistroPublicacionScreen(),
-                          ),
+                              builder: (context) => LoginScreem()),
                         );
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      child: Text("Salir"),
-                      onPressed: () {
-                        print("Saliendo");
-                        FirebaseAuth.instance.signOut().then((value) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => LoginScreem()),
-                          );
-                        });
-                      },
-                    ),
-                  ],
-                ),
-        ),
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
