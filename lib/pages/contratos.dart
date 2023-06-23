@@ -13,6 +13,7 @@ class ContratosScreen extends StatefulWidget {
 class _ContratosScreenState extends State<ContratosScreen> {
   late String empleadorId;
   bool isLoading = true;
+  int calificacion = 0;
 
   @override
   void initState() {
@@ -42,8 +43,102 @@ class _ContratosScreenState extends State<ContratosScreen> {
     });
   }
 
-  void cerrarContrato() {
-    // Lógica para cerrar el contrato
+  void calificarTrabajador(String trabajadorId, String contratoId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+         return AlertDialog(
+          title: Text('Calificar trabajador'),
+          content: Container(
+            constraints: BoxConstraints(maxWidth: 600),
+            child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text('Selecciona la calificación:'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      calificacion,
+                      (index) => Icon(
+                        Icons.star,
+                        color: Colors.amber,
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      5,
+                      (index) => IconButton(
+                        onPressed: () {
+                          setState(() {
+                            calificacion = index + 1;
+                          });
+                        },
+                        icon: Icon(
+                          index < calificacion
+                              ? Icons.star
+                              : Icons.star_border,
+                          color: Colors.amber,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          ),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                if (calificacion != 0) {
+                  FirebaseFirestore.instance
+                      .collection('contratos')
+                      .doc(contratoId)
+                      .update({
+                    'calificacion': calificacion,
+                    'estado': 'cerrado', // Actualizar el estado a "cerrado"
+                  }).then((value) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Se ha calificado al trabajador.'),
+                      ),
+                    );
+                  }).catchError((error) {
+                    print('Error al calificar al trabajador: $error');
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                            'Ocurrió un error al calificar al trabajador. Por favor, inténtalo de nuevo.'),
+                      ),
+                    );
+                  });
+                } else {
+                  Navigator.pop(context);
+                }
+              },
+              child: Text('Calificar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('Cancelar'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -86,7 +181,7 @@ class _ContratosScreenState extends State<ContratosScreen> {
 
                   return Text(
                     'Contratos de: $empleadorNombre $empleadorApellido',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
                   );
                 },
               ),
@@ -95,15 +190,10 @@ class _ContratosScreenState extends State<ContratosScreen> {
         width: MediaQuery.of(context).size.width,
         height: MediaQuery.of(context).size.height,
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color.fromARGB(255, 47, 152, 233),
-              Color.fromRGBO(236, 163, 249, 1)
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
+            gradient: LinearGradient(colors: [
+          Color.fromARGB(255, 47, 152, 233),
+          Color.fromRGBO(236, 163, 249, 1)
+        ], begin: Alignment.topCenter, end: Alignment.bottomCenter)),
         child: isLoading
             ? const Center(
                 child: CircularProgressIndicator(),
@@ -168,65 +258,43 @@ class _ContratosScreenState extends State<ContratosScreen> {
 
                               final publicacionData =
                                   snapshot.data!.data() as Map<String, dynamic>;
-                              final descripcion = publicacionData['descripcion'];
+                              final publicacionDescripcion =
+                                  publicacionData['descripcion'];
 
                               return ListTile(
                                 title: Text('Contrato $index'),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    SizedBox(height: 10),
-                                  
-                                    Text('Nombre del trabajador: $trabajadorNombre $trabajadorApellido'),
-                                    SizedBox(height: 10),
-                                    Text('Descripción de la publicación:'),
-                                    Text(descripcion),
+                                    const SizedBox(height: 10),
+                                    Text('Trabajador: $trabajadorNombre $trabajadorApellido'),
+                                    Text('Teléfono: $trabajadorTelefono'),
+                                    Text('Cédula: $trabajadorCedula'),
+                                    const SizedBox(height: 10),
+                                    const Text('Descripción de la publicación:'),
+                                    Text(publicacionDescripcion),
+                                    const SizedBox(height: 10),
+                                     Text('Estado del contrato: ${document['estado']}'),
                                   ],
                                 ),
-                                onTap: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (BuildContext context) {
-                                      return AlertDialog(
-                                        title: Text('Datos del trabajador'),
-                                        content: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text('Datos del trabajador'),
-                                            Text('Nombre: $trabajadorNombre'),
-                                            Text(
-                                                'Apellido: $trabajadorApellido'),
-                                            Text(
-                                                'Teléfono: $trabajadorTelefono'),
-                                            Text('Cédula: $trabajadorCedula'),
-                                            SizedBox(height: 10),
-                                            Text(
-                                                'Descripción de la publicación:'),
-                                            Text(descripcion),
-                                          ],
+                                trailing: document['estado'] == 'abierto'
+                                    ? ElevatedButton(
+                                        onPressed: () {
+                                          calificarTrabajador(
+                                              trabajadorId, document.id);
+                                        },
+                                        child: Text('Cerrar Contrato'),
+                                      )
+                                    : Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: List.generate(
+                                          document['calificacion'],
+                                          (index) => const Icon(
+                                            Icons.star,
+                                            color: Colors.amber,
+                                          ),
                                         ),
-                                        actions: [
-                                          ElevatedButton(
-                                            onPressed: () {
-                                              cerrarContrato();
-                                              Navigator.pop(context);
-                                            },
-                                            child: Text('Cerrar Contrato'),
-                                          ),
-                                          ElevatedButton(
-                                            onPressed: () {
-                                              Navigator.pop(context);
-                                            },
-                                            child: Text('Salir'),
-                                          ),
-                                        ],
-                                      );
-                                    },
-                                  );
-                                },
-                                trailing: Icon(Icons.arrow_forward_ios),
+                                      ),
                               );
                             },
                           );
@@ -239,9 +307,16 @@ class _ContratosScreenState extends State<ContratosScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.pop(context); // Regresar a la pantalla anterior
+          FirebaseAuth.instance.signOut().then((value) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => LoginScreem()),
+            );
+          }).catchError((error) {
+            print('Error al cerrar sesión: $error');
+          });
         },
-        child: Icon(Icons.arrow_back),
+        child: Icon(Icons.logout),
       ),
     );
   }

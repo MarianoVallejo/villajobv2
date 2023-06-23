@@ -291,7 +291,8 @@ class _TrabajadoresScreenState extends State<TrabajadoresScreen> {
               'empleadorId': empleadorId,
               'publicacionId':
                   publicacionId, // Agregar el ID de la publicación al contrato
-              'calificacion': null,
+              'calificacion': -1,
+              'estado': "abierto",
             }).then((value) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
