@@ -105,60 +105,60 @@ class _RegistroScreenState extends State<RegistroScreen> {
     }
     return true;
   }
-  void _createUserAndSaveData() {
-    if (!_validateFields()) {
-      return;
-    }
-    FirebaseAuth.instance
-        .createUserWithEmailAndPassword(
+void _createUserAndSaveData() async {
+  if (!_validateFields()) {
+    return;
+  }
+
+  try {
+    final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
       email: _emailTextController.text,
       password: _passwordTextController.text,
-    )
-        .then((value) {
-      print("Usuario Creado");
+    );
 
-      if (_selectedOption == 'Trabajador') {
-        id =
-            'T${DateTime.now().microsecondsSinceEpoch.toString().padLeft(6, '0')}';
-      } else if (_selectedOption == 'Empleador') {
-        id =
-            'E${DateTime.now().microsecondsSinceEpoch.toString().padLeft(6, '0')}';
-      }
-      FirebaseFirestore.instance
-          .collection('usuarios')
-          .doc(id)
-          .set({
-        'nombre': _nombreTextController.text,
-        'apellido': _apellidoTextController.text,
-        'email': _emailTextController.text,
-        'cedula': _cedulaTextController.text,
-        'telefono': _telefonoTextController.text,
-        'opcion': _selectedOption,
-        'id': id,
-      }).then((_) {
-        print("Datos del usuario guardados en Firestore");
-        final storage = firebase_storage.FirebaseStorage.instance;
-        final folderRef = storage.ref().child(id).child("$id");
-        final emptyList = <int>[];
-        final data = Uint8List.fromList(emptyList);
-        folderRef.putData(data);
-        print('Carpeta creada en Firebase Storage: $id');
-        if (_selectedOption == 'Trabajador') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => TrabajadoresScreen()),
-          );
-        } else if (_selectedOption == 'Empleador') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => EmpleadoresScreen()),
-          );
-        }
-      }).onError((error, stackTrace) {
-        print("Error ${error.toString()}");
-      });
+    print("Usuario Creado");
+    
+    if (_selectedOption == 'Trabajador') {
+      id = 'T${DateTime.now().microsecondsSinceEpoch.toString().padLeft(6, '0')}';
+    } else if (_selectedOption == 'Empleador') {
+      id = 'E${DateTime.now().microsecondsSinceEpoch.toString().padLeft(6, '0')}';
+    }
+
+    await FirebaseFirestore.instance.collection('usuarios').doc(id).set({
+      'nombre': _nombreTextController.text,
+      'apellido': _apellidoTextController.text,
+      'email': _emailTextController.text,
+      'cedula': _cedulaTextController.text,
+      'telefono': _telefonoTextController.text,
+      'opcion': _selectedOption,
+      'id': id,
     });
+
+    print("Datos del usuario guardados en Firestore");
+
+    final storage = firebase_storage.FirebaseStorage.instance;
+    final folderRef = storage.ref().child(id).child("$id");
+    final emptyList = <int>[];
+    final data = Uint8List.fromList(emptyList);
+    await folderRef.putData(data);
+
+    print('Carpeta creada en Firebase Storage: $id');
+
+    if (_selectedOption == 'Trabajador') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => TrabajadoresScreen()),
+      );
+    } else if (_selectedOption == 'Empleador') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => EmpleadoresScreen()),
+      );
+    }
+  } catch (error, stackTrace) {
+    print("Error ${error.toString()}");
   }
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(

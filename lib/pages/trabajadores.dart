@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:villajob/pages/login.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:villajob/pages/perfiltrabajador.dart';
 
 class TrabajadoresScreen extends StatefulWidget {
   const TrabajadoresScreen({Key? key});
@@ -224,7 +225,9 @@ class _TrabajadoresScreenState extends State<TrabajadoresScreen> {
                         IconButton(   
                           icon: Icon(Icons.person_outline),
                           onPressed: () {
-                            // Acción para el botón de ajustes (opcional)
+                            Navigator.push(
+                            context, MaterialPageRoute(builder: (context)=> PerfilTrabajador()),
+                            );
                           },
                         ),
                         IconButton(
