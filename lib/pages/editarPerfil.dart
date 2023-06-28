@@ -1,21 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'editarPerfil.dart';
-//import 'package:editarPerfil.dart';
 
-class PerfilTrabajador extends StatefulWidget {
-  const PerfilTrabajador({Key? key}) : super(key: key);
+import '../firebase_options.dart';
+
+class EditarPerfilTrabajador extends StatefulWidget {
+  const EditarPerfilTrabajador({Key? key}) : super(key: key);
 
   @override
-  State<PerfilTrabajador> createState() => _PerfilTrabajadorState();
+  State<EditarPerfilTrabajador> createState() => _EditarPerfilTrabajadorState();
 }
 
-class _PerfilTrabajadorState extends State<PerfilTrabajador> {
+class _EditarPerfilTrabajadorState extends State<EditarPerfilTrabajador> {
   late String trabajadorId = '';
   String? urlFotoPerfil;
   File? _image;
@@ -25,6 +26,7 @@ class _PerfilTrabajadorState extends State<PerfilTrabajador> {
   String? telefono;
   String? cedula;
   String? correo;
+
   @override
   void initState() {
     super.initState();
@@ -35,7 +37,6 @@ class _PerfilTrabajadorState extends State<PerfilTrabajador> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     obtenerDatosTrabajador();
-    obtenerFotoPerfil();
   }
 
   Future<void> obtenerTrabajadorId() async {
@@ -55,7 +56,6 @@ class _PerfilTrabajadorState extends State<PerfilTrabajador> {
     }
   }
 
-///// obetener datos del trabajador
   Future<void> obtenerDatosTrabajador() async {
     String? trabajadorEmail = FirebaseAuth.instance.currentUser!.email;
     final snapshot = await FirebaseFirestore.instance
@@ -75,51 +75,11 @@ class _PerfilTrabajadorState extends State<PerfilTrabajador> {
     }
   }
 
-  ///obetener foto de perfil del trabajador
-  Future<void> obtenerFotoPerfil() async {
-    final referenciaFirebaseStorage =
-        FirebaseStorage.instance.ref().child('$trabajadorId/foto_perfil.jpg');
-
-    try {
-      final metadata = await referenciaFirebaseStorage.getMetadata();
-
-      if (metadata != null) {
-        final downloadUrl = await referenciaFirebaseStorage.getDownloadURL();
-
-        final response = await http.get(Uri.parse(downloadUrl));
-        final bytes = response.bodyBytes;
-
-        final file = File('${trabajadorId}_perfil.jpg');
-        await file.writeAsBytes(bytes);
-
-        setState(() {
-          _image = file;
-        });
-      }
-    } catch (error) {
-      print('Error al obtener la foto de perfil: $error');
-    }
-
-    final snapshot = await FirebaseFirestore.instance
-        .collection('usuarios')
-        .doc(trabajadorId)
-        .get();
-
-    if (snapshot.exists) {
-      final data = snapshot.data() as Map<String, dynamic>;
-      final urlFotoPerfil = data['urlFotoPerfil'] as String?;
-      setState(() {
-        this.urlFotoPerfil = urlFotoPerfil;
-        print('URL foto de perfil: $urlFotoPerfil');
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Perfil Trabajador"),
+        title: const Text("Editar Perfil Trabajador"),
       ),
       body: Stack(
         children: [
@@ -163,45 +123,25 @@ class _PerfilTrabajadorState extends State<PerfilTrabajador> {
                   onPressed: () {
                     seleccionarImagen();
                   },
-                  child: const Text('Seleccionar imagen'),
+                  child: const Text('Cambiar imagen'),
                 ),
-
-                SizedBox(height: 40), // Espacio vertical
-
+                SizedBox(height: 40),
                 Text(
                   'Nombre: $nombre',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-
                 Text(
                   'Apellido: $apellido',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-
                 Text(
                   'Teléfono: $telefono',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-
-                Text(
-                  'Cédula: $cedula',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-
-                Text(
-                  'Correo electrónico: $correo',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(
-                  height: 40.0,
-                ),
+                SizedBox(height: 40.0),
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => EditarPerfilTrabajador()));
-                    // home: EditarPerfilTrabajador();
+                    mostrarDialogoEditarPerfil();
                   },
                   child: const Text('Editar Perfil'),
                 ),
@@ -251,5 +191,73 @@ class _PerfilTrabajadorState extends State<PerfilTrabajador> {
     } catch (error) {
       print('Error al subir la imagen: $error');
     }
+  }
+
+  void mostrarDialogoEditarPerfil() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Editar Perfil'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                initialValue: nombre,
+                onChanged: (value) {
+                  nombre = value;
+                },
+                decoration: InputDecoration(
+                  labelText: 'Nombre',
+                ),
+              ),
+              TextFormField(
+                initialValue: apellido,
+                onChanged: (value) {
+                  apellido = value;
+                },
+                decoration: InputDecoration(
+                  labelText: 'Apellido',
+                ),
+              ),
+              TextFormField(
+                initialValue: telefono,
+                onChanged: (value) {
+                  telefono = value;
+                },
+                decoration: InputDecoration(
+                  labelText: 'Teléfono',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () {
+                guardarCambios();
+                Navigator.of(context).pop();
+              },
+              child: Text('Guardar cambios'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void guardarCambios() {
+    FirebaseFirestore.instance.collection('usuarios').doc(trabajadorId).update({
+      'nombre': nombre,
+      'apellido': apellido,
+      'telefono': telefono,
+    });
+
+    setState(() {});
   }
 }

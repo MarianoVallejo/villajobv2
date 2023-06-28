@@ -46,7 +46,7 @@ class _TrabajadoresScreenState extends State<TrabajadoresScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        extendBodyBehindAppBar: true,
+        extendBodyBehindAppBar: true,//Extiende el widget detras del appbar
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
