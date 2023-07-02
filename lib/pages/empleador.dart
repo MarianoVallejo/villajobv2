@@ -46,24 +46,7 @@ class _EmpleadoresScreenState extends State<EmpleadoresScreen> {
       });
     });
   }
-  mostrarDialogo(){
-        showDialog(
-      context: context,
-      builder: (BuildContext context) {
-         return AlertDialog(
-          title: Text('Datos del trabajador'),
-          content: Container(
-            height: 250,
-            child: Column(
-              children: [
-                Text('asdas')
-              ],
-            ),
-          ),
-          );
-      },
-    );
-  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
