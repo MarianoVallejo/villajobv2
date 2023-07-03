@@ -4,7 +4,6 @@ import 'package:villajob/pages/login.dart';
 
 import 'firebase_options.dart';
 
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -24,6 +23,8 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+//Mauricio 
 
 /*class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
